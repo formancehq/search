@@ -155,19 +155,22 @@ func apiModule(serviceName, bind string, esIndices ...string) fx.Option {
 	return fx.Options(
 		fx.Provide(fx.Annotate(func(openSearchClient *opensearch.Client, tp trace.TracerProvider, healthController *sharedhealth.HealthController) (http.Handler, error) {
 			router := mux.NewRouter()
+
+			router.Use(handlers.RecoveryHandler())
+			router.Handle(healthCheckPath, http.HandlerFunc(healthController.Check))
+
+			routerWithTraces := router.PathPrefix("/").Subrouter()
 			if viper.GetBool(sharedotlptraces.OtelTracesFlag) {
-				router.Use(func(handler http.Handler) http.Handler {
+				routerWithTraces.Use(func(handler http.Handler) http.Handler {
 					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						spew.Dump(r.Header)
 						handler.ServeHTTP(w, r)
 					})
 				})
-				router.Use(otelmux.Middleware(serviceName, otelmux.WithTracerProvider(tp)))
+				routerWithTraces.Use(otelmux.Middleware(serviceName, otelmux.WithTracerProvider(tp)))
 			}
-			router.Use(handlers.RecoveryHandler())
-			router.Handle(healthCheckPath, http.HandlerFunc(healthController.Check))
 
-			protected := router.PathPrefix("/").Subrouter()
+			protected := routerWithTraces.PathPrefix("/").Subrouter()
 
 			methods := make([]sharedauth.Method, 0)
 			if viper.GetBool(authBasicEnabledFlag) {
@@ -194,7 +197,7 @@ func apiModule(serviceName, bind string, esIndices ...string) fx.Option {
 			if len(methods) > 0 {
 				protected.Use(sharedauth.Middleware(methods...))
 			}
-			router.PathPrefix("/").Handler(searchhttp.Handler(searchengine.NewDefaultEngine(
+			routerWithTraces.PathPrefix("/").Handler(searchhttp.Handler(searchengine.NewDefaultEngine(
 				openSearchClient,
 				searchengine.WithESIndices(esIndices...),
 			)))
