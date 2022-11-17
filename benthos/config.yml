@@ -5,7 +5,7 @@ http:
 tracer:
   jaeger:
     agent_address: "${JAEGER_COLLECTOR}"
-    service_name: ${SERVICE_NAME}
+    service_name: "${SERVICE_NAME}"
 
 input:
   kafka:

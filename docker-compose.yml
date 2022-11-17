@@ -1,15 +1,8 @@
 services:
-  jaeger:
-    image: jaegertracing/opentelemetry-all-in-one
+  zipkin:
+    image: openzipkin/zipkin
     ports:
-    - "16686:16686/tcp"
-  collector:
-    image: otel/opentelemetry-collector
-    volumes:
-    - ./otel-config.yml:/otel-config.yml
-    command: [ "--config=/otel-config.yml" ]
-    depends_on:
-    - jaeger
+    - 9411:9411/tcp
   opensearch:
     image: opensearchproject/opensearch
     environment:
@@ -52,14 +45,13 @@ services:
     - 8080:8080/tcp
     depends_on:
       - opensearch
-      - collector
+      - zipkin
     environment:
       OPEN_SEARCH_SERVICE: "admin:admin@opensearch:9200"
       DEBUG: "true"
       OTEL_TRACES: "true"
-      OTEL_TRACES_EXPORTER: otlp
-      OTEL_TRACES_EXPORTER_OTLP_ENDPOINT: collector:4317
-      OTEL_TRACES_EXPORTER_OTLP_INSECURE: "true"
+      OTEL_TRACES_EXPORTER: zipkin
+      OTEL_TRACES_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
     volumes:
       - .:/app
     working_dir: /app
