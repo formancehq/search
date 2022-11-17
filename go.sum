@@ -219,6 +219,12 @@ github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/felixge/httpsnoop v1.0.3 h1:s/nj+GCswXYzN5v2DpNMuMQYe+0DDwt5WVCU6CWBdXk=
 github.com/felixge/httpsnoop v1.0.3/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
+github.com/formancehq/go-libs v1.0.2-0.20221117123317-d871466e3465 h1:ubc98rOHGmo65v7LiL1dfFbwDojkTQKNu68j64+3oos=
+github.com/formancehq/go-libs v1.0.2-0.20221117123317-d871466e3465/go.mod h1:9pIcaXQR4O1biXDfhFurYJZw1piU6sJk+0Vqvu+92ng=
+github.com/formancehq/go-libs/sharedhealth v0.0.0-20221117123317-d871466e3465 h1:oi8bqBLxuX9Re3sDpF3g+y5HHSRJ0HBAh/k3JVfo+SE=
+github.com/formancehq/go-libs/sharedhealth v0.0.0-20221117123317-d871466e3465/go.mod h1:4TBSSGGBeY6xCaqI4gw74ouwgirdZjvKlv001kQ8xp0=
+github.com/formancehq/go-libs/sharedotlp v0.0.0-20221117123317-d871466e3465 h1:gGgmAKzISoQ16BgM52h0dZfaeWlskOfQTc/r5scuWZE=
+github.com/formancehq/go-libs/sharedotlp v0.0.0-20221117123317-d871466e3465/go.mod h1:2yT660i6Ay5d5EtMpJgUl6J+wMS1mUBO1SIoCJO2Shc=
 github.com/franela/goblin v0.0.0-20200105215937-c9ffbefa60db/go.mod h1:7dvUGVsVBjqR7JHJk0brhHOZYGmfBYOrK0ZhYMEtBr4=
 github.com/franela/goreq v0.0.0-20171204163338-bcd34c9993f8/go.mod h1:ZhphrRTfi2rbfLwlschooIH4+wKKDR4Pdxhh+TRoA20=
 github.com/frankban/quicktest v1.11.3/go.mod h1:wRf/ReqHper53s+kmmSZizM8NamnL3IM0I9ntUbOk+k=
@@ -620,12 +626,6 @@ github.com/nats-io/nkeys v0.1.0/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxzi
 github.com/nats-io/nkeys v0.1.3/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxziKVo7w=
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
-github.com/numary/go-libs v1.0.1 h1:Q41dz+u+inimZMVgSneCzbtoLiPMTjr1gT3D2UeC7IA=
-github.com/numary/go-libs v1.0.1/go.mod h1:u9XNKBrHJSCwu13s85GkEg4TWfRm2CF3fknav4TTLn4=
-github.com/numary/go-libs/sharedhealth v0.0.0-20220905094731-f6d6d1cf83f3 h1:ufyCkiNTq5rOeM1ximL4plP9OwCpuXGprSoaXsoGAn0=
-github.com/numary/go-libs/sharedhealth v0.0.0-20220905094731-f6d6d1cf83f3/go.mod h1:DzBUp4HCdWscgXmt8/5F/KlCSktv0OwgOwDfRdz5Hzo=
-github.com/numary/go-libs/sharedotlp v0.0.0-20220905094731-f6d6d1cf83f3 h1:J87uGw67KBoGGX7uzpCksEXYqX5bTy/atdHa15kRI6E=
-github.com/numary/go-libs/sharedotlp v0.0.0-20220905094731-f6d6d1cf83f3/go.mod h1:4QEZTmjeQbNMjWd/pKADguTjxTvAuWgh+ZBWzJ7xDiI=
 github.com/numary/ledger v0.0.0-20210702172952-a5bd30e551d0/go.mod h1:u2K28z9TDYd6id1qeD2uv7JDlajuRZ0fvOnCeDZmDxk=
 github.com/numary/ledger v0.0.0-20211227131550-dc7b78f85b5b/go.mod h1:uovuDsK7Gs7duqKQ9PgaFulJnPTDftGdR/n3rBRzNIs=
 github.com/numary/ledger v1.0.0-rc1 h1:HB1TYCWUvEMuYfWxPbsFt+UZ03MX94H6wUAhnoRkiDw=
@@ -872,6 +872,8 @@ go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.36
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4 h1:aUEBEdCa6iamGzg6fuYxDA8ThxvOG240mAvWDU+XLio=
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.36.4/go.mod h1:l2MdsbKTocpPS5nQZscqTR9jd8u96VYZdcpF8Sye7mA=
 go.opentelemetry.io/contrib/propagators/b3 v1.2.0/go.mod h1:kO8hNKCfa1YmQJ0lM7pzfJGvbXEipn/S7afbOfaw2Kc=
+go.opentelemetry.io/contrib/propagators/b3 v1.11.1 h1:icQ6ttRV+r/2fnU46BIo/g/mPu6Rs5Ug8Rtohe3KqzI=
+go.opentelemetry.io/contrib/propagators/b3 v1.11.1/go.mod h1:ECIveyMXgnl4gorxFcA7RYjJY/Ql9n20ubhbfDc3QfA=
 go.opentelemetry.io/otel v1.2.0/go.mod h1:aT17Fk0Z1Nor9e0uisf98LrntPGMnk4frBO9+dkf69I=
 go.opentelemetry.io/otel v1.3.0/go.mod h1:PWIKzi6JCp7sM0k9yZ43VX+T345uNbAkDKwHVjb2PTs=
 go.opentelemetry.io/otel v1.11.1 h1:4WLLAmcfkmDk2ukNXJyq3/kiz/3UzCaYq6PskJsaou4=

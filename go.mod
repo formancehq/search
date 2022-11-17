@@ -6,11 +6,11 @@ require (
 	github.com/aquasecurity/esquery v0.2.0
 	github.com/bombsimon/logrusr/v3 v3.1.0
 	github.com/elastic/go-elasticsearch/v7 v7.17.7
+	github.com/formancehq/go-libs v1.0.2-0.20221117123317-d871466e3465
+	github.com/formancehq/go-libs/sharedhealth v0.0.0-20221117123317-d871466e3465
+	github.com/formancehq/go-libs/sharedotlp v0.0.0-20221117123317-d871466e3465
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
-	github.com/numary/go-libs v1.0.1
-	github.com/numary/go-libs/sharedhealth v0.0.0-20220905094731-f6d6d1cf83f3
-	github.com/numary/go-libs/sharedotlp v0.0.0-20220905094731-f6d6d1cf83f3
 	github.com/numary/ledger v1.0.0-rc1
 	github.com/opensearch-project/opensearch-go v1.1.0
 	github.com/ory/dockertest/v3 v3.8.1
@@ -75,6 +75,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
+	go.opentelemetry.io/contrib/propagators/b3 v1.11.1 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.11.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.11.1 // indirect

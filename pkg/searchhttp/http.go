@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/aquasecurity/esquery"
-	"github.com/numary/go-libs/sharedlogging"
+	"github.com/formancehq/go-libs/sharedlogging"
 	"github.com/numary/search/pkg/searchengine"
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
