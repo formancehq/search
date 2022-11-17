@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"strings"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
 )
@@ -87,9 +87,7 @@ func NewServer() *cobra.Command {
 				}),
 			)
 
-			if viper.GetBool(sharedotlptraces.OtelTracesFlag) {
-				options = append(options, sharedotlptraces.CLITracesModule(viper.GetViper()))
-			}
+			options = append(options, sharedotlptraces.CLITracesModule(viper.GetViper()))
 			options = append(options, apiModule("search", bind, esIndices...))
 
 			app := fx.New(options...)
@@ -129,33 +127,6 @@ func exitWithError(logger *logrus.Logger, msg string) {
 	os.Exit(1)
 }
 
-type debugRoundTripper struct {
-	http.RoundTripper
-}
-
-func (d debugRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	body, err := httputil.DumpRequest(request, true)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(string(body))
-
-	rsp, err := d.RoundTripper.RoundTrip(request)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err = httputil.DumpResponse(rsp, true)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(string(body))
-
-	return rsp, nil
-}
-
-var _ http.RoundTripper = (*debugRoundTripper)(nil)
-
 func opensearchClientModule(openSearchServiceHost string, esIndices ...string) fx.Option {
 	return fx.Options(
 		fx.Provide(func() (*opensearch.Client, error) {
@@ -166,9 +137,7 @@ func opensearchClientModule(openSearchServiceHost string, esIndices ...string) f
 
 			return opensearch.NewClient(opensearch.Config{
 				Addresses: []string{viper.GetString(openSearchSchemeFlag) + "://" + openSearchServiceHost},
-				Transport: &debugRoundTripper{
-					RoundTripper: httpTransport,
-				},
+				Transport: otelhttp.NewTransport(httpTransport),
 			})
 		}),
 		fx.Invoke(func(lc fx.Lifecycle, client *opensearch.Client) {

@@ -13,9 +13,8 @@ processors:
 exporters:
   logging:
     loglevel: info
-  jaeger:
-    endpoint: jaeger:14250
-    insecure: true
+  zipkin:
+    endpoint: http://zipkin:9411/api/v2/spans
 
 extensions:
   health_check:
@@ -28,4 +27,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [jaeger]
+      exporters: [zipkin]

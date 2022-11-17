@@ -1,16 +1,20 @@
 services:
   zipkin:
-    image: openzipkin/zipkin
+    image: openzipkin/zipkin:2.23
     ports:
     - 9411:9411/tcp
+  collector:
+    image: otel/opentelemetry-collector
+    volumes:
+    - ./otel-config.yml:/etc/otelcol/config.yaml
   opensearch:
-    image: opensearchproject/opensearch
+    image: opensearchproject/opensearch:2.4.0
     environment:
       discovery.type: single-node
     ports:
     - 9200:9200/tcp
   benthos:
-    image: jeffail/benthos
+    image: jeffail/benthos:4.10
     ports:
     - "4195:4195/tcp"
     volumes:
@@ -50,8 +54,9 @@ services:
       OPEN_SEARCH_SERVICE: "admin:admin@opensearch:9200"
       DEBUG: "true"
       OTEL_TRACES: "true"
-      OTEL_TRACES_EXPORTER: zipkin
-      OTEL_TRACES_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER_OTLP_ENDPOINT: collector:4317
+      OTEL_TRACES_EXPORTER_OTLP_INSECURE: "true"
     volumes:
       - .:/app
     working_dir: /app
