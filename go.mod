@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/aquasecurity/esquery v0.2.0
 	github.com/bombsimon/logrusr/v3 v3.1.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/elastic/go-elasticsearch/v7 v7.17.7
 	github.com/formancehq/go-libs v1.0.2-0.20221117123317-d871466e3465
 	github.com/formancehq/go-libs/sharedhealth v0.0.0-20221117123317-d871466e3465
@@ -34,7 +35,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/docker/cli v20.10.16+incompatible // indirect
 	github.com/docker/docker v20.10.16+incompatible // indirect
