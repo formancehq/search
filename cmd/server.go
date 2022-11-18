@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/formancehq/go-libs/oauth2/oauth2introspect"
 	"github.com/formancehq/go-libs/sharedauth"
 	sharedhealth "github.com/formancehq/go-libs/sharedhealth/pkg"
@@ -161,12 +160,6 @@ func apiModule(serviceName, bind string, esIndices ...string) fx.Option {
 
 			routerWithTraces := router.PathPrefix("/").Subrouter()
 			if viper.GetBool(sharedotlptraces.OtelTracesFlag) {
-				routerWithTraces.Use(func(handler http.Handler) http.Handler {
-					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						spew.Dump(r.Header)
-						handler.ServeHTTP(w, r)
-					})
-				})
 				routerWithTraces.Use(otelmux.Middleware(serviceName, otelmux.WithTracerProvider(tp)))
 			}
 

@@ -58,6 +58,7 @@ services:
       OTEL_TRACES_EXPORTER_OTLP_ENDPOINT: collector:4317
       OTEL_TRACES_EXPORTER_OTLP_INSECURE: "true"
       OTEL_SERVICE_NAME: "search"
+      OTEL_RESOURCE_ATTRIBUTES: "env=local engine=docker"
     volumes:
       - .:/app
     working_dir: /app
