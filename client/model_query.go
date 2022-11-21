@@ -14,6 +14,9 @@ import (
 	"encoding/json"
 )
 
+// checks if the Query type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &Query{}
+
 // Query struct for Query
 type Query struct {
 	Ledgers []string `json:"ledgers,omitempty"`
@@ -168,6 +171,14 @@ func (o *Query) SetTerms(v []string) {
 }
 
 func (o Query) MarshalJSON() ([]byte, error) {
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o Query) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !isNil(o.Ledgers) {
 		toSerialize["ledgers"] = o.Ledgers
@@ -181,7 +192,7 @@ func (o Query) MarshalJSON() ([]byte, error) {
 	if !isNil(o.Terms) {
 		toSerialize["terms"] = o.Terms
 	}
-	return json.Marshal(toSerialize)
+	return toSerialize, nil
 }
 
 type NullableQuery struct {

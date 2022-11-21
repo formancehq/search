@@ -14,6 +14,9 @@ import (
 	"encoding/json"
 )
 
+// checks if the Response type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &Response{}
+
 // Response struct for Response
 type Response struct {
 	// The payload
@@ -138,6 +141,14 @@ func (o *Response) SetLedger(v string) {
 }
 
 func (o Response) MarshalJSON() ([]byte, error) {
+	toSerialize,err := o.ToMap()
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(toSerialize)
+}
+
+func (o Response) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	if !isNil(o.Data) {
 		toSerialize["data"] = o.Data
@@ -148,7 +159,7 @@ func (o Response) MarshalJSON() ([]byte, error) {
 	if !isNil(o.Ledger) {
 		toSerialize["ledger"] = o.Ledger
 	}
-	return json.Marshal(toSerialize)
+	return toSerialize, nil
 }
 
 type NullableResponse struct {
