@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aquasecurity/esquery"
+	"github.com/formancehq/go-libs/api"
 	search "github.com/formancehq/search/pkg"
 	"github.com/formancehq/search/pkg/es"
 	"github.com/formancehq/search/pkg/searchengine"
@@ -46,12 +47,10 @@ func hasSearchAfter(searchAfter ...interface{}) queryChecker {
 }
 
 func TestMultiSearch(t *testing.T) {
-
 	type testCase struct {
 		name     string
-		query    map[string]interface{}
 		results  map[string][]interface{}
-		expected Response
+		expected interface{}
 	}
 
 	now := time.Now().Round(time.Second).UTC()
@@ -90,8 +89,8 @@ func TestMultiSearch(t *testing.T) {
 					},
 				},
 			},
-			expected: Response{
-				Data: map[string]interface{}{
+			expected: api.BaseResponse[map[string]interface{}]{
+				Data: &map[string]interface{}{
 					"ACCOUNT": []interface{}{
 						map[string]interface{}{
 							"address":  "user:001",
@@ -171,16 +170,14 @@ func TestMultiSearch(t *testing.T) {
 				})
 			}
 
-			engine := searchengine.EngineFn(func(ctx context.Context, m map[string]interface{}) (*es.Response, error) {
-				return esResponse, nil
-			})
+			engine := searchengine.EngineFn(
+				func(ctx context.Context, m map[string]interface{}) (*es.Response, error) {
+					return esResponse, nil
+				})
 
 			r := Handler(engine)
 
-			query := tc.query
-			if query == nil {
-				query = map[string]interface{}{}
-			}
+			query := map[string]interface{}{}
 			data, err := json.Marshal(query)
 			assert.NoError(t, err)
 
@@ -190,7 +187,7 @@ func TestMultiSearch(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
 
-			response := Response{}
+			response := api.BaseResponse[map[string]interface{}]{}
 			err = json.NewDecoder(rec.Body).Decode(&response)
 			assert.NoError(t, err)
 
@@ -201,21 +198,21 @@ func TestMultiSearch(t *testing.T) {
 }
 
 func TestSingleDocTypeSearch(t *testing.T) {
-
 	type testCase struct {
 		name         string
 		query        map[string]interface{}
 		kind         string
 		results      []interface{}
-		expected     Response
+		expected     interface{}
 		queryChecker []queryChecker
 	}
 
 	now := time.Now().Round(time.Second).UTC()
 	var testCases = []testCase{
 		{
-			name: "nominal",
-			kind: "ACCOUNT",
+			name:  "nominal",
+			kind:  "ACCOUNT",
+			query: map[string]interface{}{},
 			results: []interface{}{
 				core.Account{
 					Address: "user:001",
@@ -227,19 +224,19 @@ func TestSingleDocTypeSearch(t *testing.T) {
 					},
 				},
 			},
-			expected: Response{
-				Cursor: &Page{
+			expected: api.BaseResponse[map[string]interface{}]{
+				Cursor: &api.Cursor[map[string]interface{}]{
 					PageSize: 2,
-					Total: Total{
+					Total: &api.Total{
 						Value: 2,
 						Rel:   "eq",
 					},
-					Data: []interface{}{
-						map[string]interface{}{
+					Data: []map[string]interface{}{
+						{
 							"address":  "user:001",
 							"metadata": nil,
 						},
-						map[string]interface{}{
+						{
 							"address": "user:002",
 							"metadata": map[string]interface{}{
 								"foo": "bar",
@@ -270,16 +267,16 @@ func TestSingleDocTypeSearch(t *testing.T) {
 					},
 				},
 			},
-			expected: Response{
-				Cursor: &Page{
+			expected: api.BaseResponse[map[string]interface{}]{
+				Cursor: &api.Cursor[map[string]interface{}]{
 					PageSize: 1,
 					HasMore:  false,
-					Total: Total{
+					Total: &api.Total{
 						Value: 1,
 						Rel:   "eq",
 					},
-					Data: []interface{}{
-						map[string]interface{}{
+					Data: []map[string]interface{}{
+						{
 							"address": "user:002",
 							"metadata": map[string]interface{}{
 								"foo": "bar",
@@ -309,16 +306,16 @@ func TestSingleDocTypeSearch(t *testing.T) {
 					Address: "user:001",
 				},
 			},
-			expected: Response{
-				Cursor: &Page{
+			expected: api.BaseResponse[map[string]interface{}]{
+				Cursor: &api.Cursor[map[string]interface{}]{
 					PageSize: 1,
 					HasMore:  false,
-					Total: Total{
+					Total: &api.Total{
 						Value: 1,
 						Rel:   "eq",
 					},
-					Data: []interface{}{
-						map[string]interface{}{
+					Data: []map[string]interface{}{
+						{
 							"address":  "user:001",
 							"metadata": nil,
 						},
@@ -330,7 +327,7 @@ func TestSingleDocTypeSearch(t *testing.T) {
 			name: "next-page",
 			kind: "ACCOUNT",
 			query: map[string]interface{}{
-				"cursor": EncodePaginationToken(cursorTokenInfo{
+				"cursor": EncodeCursorToken(cursorTokenInfo{
 					Target: "ACCOUNT",
 					Sort: []searchengine.Sort{
 						{
@@ -357,11 +354,11 @@ func TestSingleDocTypeSearch(t *testing.T) {
 					Address: "user:001",
 				},
 			},
-			expected: Response{
-				Cursor: &Page{
+			expected: api.BaseResponse[map[string]interface{}]{
+				Cursor: &api.Cursor[map[string]interface{}]{
 					PageSize: 1,
 					HasMore:  false,
-					Previous: EncodePaginationToken(cursorTokenInfo{
+					Previous: EncodeCursorToken(cursorTokenInfo{
 						Target: "ACCOUNT",
 						Sort: []searchengine.Sort{
 							{
@@ -375,12 +372,12 @@ func TestSingleDocTypeSearch(t *testing.T) {
 						Size:    5,
 						Reverse: true,
 					}),
-					Total: Total{
+					Total: &api.Total{
 						Value: 1,
 						Rel:   "eq",
 					},
-					Data: []interface{}{
-						map[string]interface{}{
+					Data: []map[string]interface{}{
+						{
 							"address":  "user:001",
 							"metadata": nil,
 						},
@@ -420,22 +417,18 @@ func TestSingleDocTypeSearch(t *testing.T) {
 				})
 			}
 
-			engine := searchengine.EngineFn(func(ctx context.Context, m map[string]interface{}) (*es.Response, error) {
-				for _, check := range tc.queryChecker {
-					check(t, m)
-				}
-				return esResponse, nil
-			})
+			engine := searchengine.EngineFn(
+				func(ctx context.Context, m map[string]interface{}) (*es.Response, error) {
+					for _, check := range tc.queryChecker {
+						check(t, m)
+					}
+					return esResponse, nil
+				})
 
 			r := Handler(engine)
 
-			query := tc.query
-			if query == nil {
-				query = map[string]interface{}{}
-			}
-			query["target"] = tc.kind
-
-			data, err := json.Marshal(query)
+			tc.query["target"] = tc.kind
+			data, err := json.Marshal(tc.query)
 			assert.NoError(t, err)
 
 			rec := httptest.NewRecorder()
@@ -444,11 +437,10 @@ func TestSingleDocTypeSearch(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
 
-			response := Response{}
+			response := api.BaseResponse[map[string]interface{}]{}
 			err = json.NewDecoder(rec.Body).Decode(&response)
 			assert.NoError(t, err)
 			assert.EqualValues(t, tc.expected, response)
 		})
 	}
-
 }

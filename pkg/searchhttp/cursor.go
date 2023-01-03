@@ -8,20 +8,6 @@ import (
 	"github.com/formancehq/search/pkg/searchengine"
 )
 
-type Total struct {
-	Value uint64 `json:"value"`
-	Rel   string `json:"relation"`
-}
-
-type Page struct {
-	PageSize int         `json:"pageSize"`
-	HasMore  bool        `json:"hasMore"`
-	Total    Total       `json:"total,omitempty"`
-	Next     string      `json:"next,omitempty"`
-	Data     interface{} `json:"data"`
-	Previous string      `json:"previous"`
-}
-
 type cursorTokenInfo struct {
 	Target      string              `json:"target"`
 	Sort        []searchengine.Sort `json:"sort"`
@@ -37,7 +23,7 @@ func DecodeCursorToken(v string, c *cursorTokenInfo) error {
 	return json.NewDecoder(base64.NewDecoder(base64.URLEncoding, bytes.NewBufferString(v))).Decode(&c)
 }
 
-func EncodePaginationToken(c cursorTokenInfo) string {
+func EncodeCursorToken(c cursorTokenInfo) string {
 	buf := bytes.NewBufferString("")
 	enc := base64.NewEncoder(base64.URLEncoding, buf)
 	err := json.NewEncoder(enc).Encode(c)

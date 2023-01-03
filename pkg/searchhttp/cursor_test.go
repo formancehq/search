@@ -22,7 +22,7 @@ func TestNextToken(t *testing.T) {
 		},
 		Ledgers: []string{"quickstart"},
 	}
-	tok := EncodePaginationToken(nti)
+	tok := EncodeCursorToken(nti)
 	decoded := cursorTokenInfo{}
 	if !assert.NoError(t, DecodeCursorToken(tok, &decoded)) {
 		return

@@ -8,12 +8,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/formancehq/go-libs/api"
+	"github.com/formancehq/go-libs/auth"
+	"github.com/formancehq/go-libs/health"
+	"github.com/formancehq/go-libs/logging"
 	"github.com/formancehq/go-libs/oauth2/oauth2introspect"
-	"github.com/formancehq/go-libs/sharedapi"
-	"github.com/formancehq/go-libs/sharedauth"
-	sharedhealth "github.com/formancehq/go-libs/sharedhealth/pkg"
-	"github.com/formancehq/go-libs/sharedlogging"
-	"github.com/formancehq/go-libs/sharedotlp/pkg/sharedotlptraces"
+	"github.com/formancehq/go-libs/otlp/otlptraces"
 	"github.com/formancehq/search/pkg/searchengine"
 	"github.com/formancehq/search/pkg/searchhttp"
 	"github.com/gorilla/handlers"
@@ -83,17 +83,17 @@ func NewServer() *cobra.Command {
 			options := make([]fx.Option, 0)
 			options = append(options, opensearchClientModule(openSearchServiceHost, !viper.GetBool(esDisableMappingInitFlag), esIndices...))
 			options = append(options,
-				sharedhealth.Module(),
-				sharedhealth.ProvideHealthCheck(func(client *opensearch.Client) sharedhealth.NamedCheck {
-					return sharedhealth.NewNamedCheck("elasticsearch connection", sharedhealth.CheckFn(func(ctx context.Context) error {
+				health.Module(),
+				health.ProvideHealthCheck(func(client *opensearch.Client) health.NamedCheck {
+					return health.NewNamedCheck("elasticsearch connection", health.CheckFn(func(ctx context.Context) error {
 						_, err := client.Ping()
 						return err
 					}))
 				}),
 			)
 
-			options = append(options, sharedotlptraces.CLITracesModule(viper.GetViper()))
-			options = append(options, apiModule("search", bind, sharedapi.ServiceInfo{
+			options = append(options, otlptraces.CLITracesModule(viper.GetViper()))
+			options = append(options, apiModule("search", bind, api.ServiceInfo{
 				Version: Version,
 			}, esIndices...))
 
@@ -120,7 +120,7 @@ func NewServer() *cobra.Command {
 	cmd.Flags().String(authBearerIntrospectUrlFlag, "", "OAuth2 introspect URL")
 	cmd.Flags().String(authBearerAudienceFlag, "", "OAuth2 audience template")
 	cmd.Flags().Bool(esDisableMappingInitFlag, false, "Disable mapping initialization")
-	sharedotlptraces.InitOTLPTracesFlags(cmd.Flags())
+	otlptraces.InitOTLPTracesFlags(cmd.Flags())
 
 	return cmd
 }
@@ -157,46 +157,46 @@ func opensearchClientModule(openSearchServiceHost string, loadMapping bool, esIn
 	return fx.Options(options...)
 }
 
-func apiModule(serviceName, bind string, serviceInfo sharedapi.ServiceInfo, esIndices ...string) fx.Option {
+func apiModule(serviceName, bind string, serviceInfo api.ServiceInfo, esIndices ...string) fx.Option {
 	return fx.Options(
-		fx.Provide(fx.Annotate(func(openSearchClient *opensearch.Client, tp trace.TracerProvider, healthController *sharedhealth.HealthController) (http.Handler, error) {
+		fx.Provide(fx.Annotate(func(openSearchClient *opensearch.Client, tp trace.TracerProvider, healthController *health.HealthController) (http.Handler, error) {
 			router := mux.NewRouter()
 
 			router.Use(handlers.RecoveryHandler())
 			router.Handle(healthCheckPath, http.HandlerFunc(healthController.Check))
 
 			routerWithTraces := router.PathPrefix("/").Subrouter()
-			if viper.GetBool(sharedotlptraces.OtelTracesFlag) {
+			if viper.GetBool(otlptraces.OtelTracesFlag) {
 				routerWithTraces.Use(otelmux.Middleware(serviceName, otelmux.WithTracerProvider(tp)))
 			}
-			routerWithTraces.Path("/_info").Methods(http.MethodGet).Handler(sharedapi.InfoHandler(serviceInfo))
+			routerWithTraces.Path("/_info").Methods(http.MethodGet).Handler(api.InfoHandler(serviceInfo))
 
 			protected := routerWithTraces.PathPrefix("/").Subrouter()
 
-			methods := make([]sharedauth.Method, 0)
+			methods := make([]auth.Method, 0)
 			if viper.GetBool(authBasicEnabledFlag) {
-				credentials := sharedauth.Credentials{}
+				credentials := auth.Credentials{}
 				for _, kv := range viper.GetStringSlice(authBasicCredentialsFlag) {
 					parts := strings.SplitN(kv, ":", 2)
-					credentials[parts[0]] = sharedauth.Credential{
+					credentials[parts[0]] = auth.Credential{
 						Password: parts[1],
 						Scopes:   []string{"search"},
 					}
 				}
-				methods = append(methods, sharedauth.NewHTTPBasicMethod(credentials))
+				methods = append(methods, auth.NewHTTPBasicMethod(credentials))
 			}
 			if viper.GetBool(authBearerEnabledFlag) {
-				methods = append(methods, sharedauth.NewHttpBearerMethod(
-					sharedauth.NewIntrospectionValidator(
+				methods = append(methods, auth.NewHttpBearerMethod(
+					auth.NewIntrospectionValidator(
 						oauth2introspect.NewIntrospecter(viper.GetString(authBearerIntrospectUrlFlag)),
 						false,
-						sharedauth.AudienceIn(viper.GetString(authBearerAudienceFlag)),
+						auth.AudienceIn(viper.GetString(authBearerAudienceFlag)),
 					),
 				))
 			}
 
 			if len(methods) > 0 {
-				protected.Use(sharedauth.Middleware(methods...))
+				protected.Use(auth.Middleware(methods...))
 			}
 			routerWithTraces.PathPrefix("/").Handler(searchhttp.Handler(searchengine.NewDefaultEngine(
 				openSearchClient,
@@ -208,7 +208,7 @@ func apiModule(serviceName, bind string, serviceInfo sharedapi.ServiceInfo, esIn
 		fx.Invoke(func(lc fx.Lifecycle, handler http.Handler) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
-					sharedlogging.GetLogger(ctx).Infof("Starting http server on %s", bind)
+					logging.GetLogger(ctx).Infof("Starting http server on %s", bind)
 					go func() {
 						err := http.ListenAndServe(bind, handler)
 						if err != nil {
