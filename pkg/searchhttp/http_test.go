@@ -64,7 +64,7 @@ func TestMultiSearch(t *testing.T) {
 					},
 					core.Account{
 						Address: "user:002",
-						Metadata: map[string]json.RawMessage{
+						Metadata: core.Metadata{
 							"foo": json.RawMessage(`"bar"`),
 						},
 					},
@@ -72,19 +72,20 @@ func TestMultiSearch(t *testing.T) {
 				"TRANSACTION": {
 					core.Transaction{
 						ID: 1,
-						Postings: []core.Posting{
-							{
-								Source:      "world",
-								Destination: "central_bank",
-								Amount:      100,
-								Asset:       "USD",
+						TransactionData: core.TransactionData{
+							Postings: []core.Posting{
+								{
+									Source:      "world",
+									Destination: "central_bank",
+									Amount:      core.NewMonetaryInt(100),
+									Asset:       "USD",
+								},
 							},
-						},
-						Reference: "tx1",
-						Timestamp: now.Format(time.RFC3339),
-						Hash:      "abcd",
-						Metadata: core.Metadata{
-							"foo": json.RawMessage(`"bar"`),
+							Reference: "tx1",
+							Timestamp: now,
+							Metadata: core.Metadata{
+								"foo": json.RawMessage(`"bar"`),
+							},
 						},
 					},
 				},
@@ -108,7 +109,6 @@ func TestMultiSearch(t *testing.T) {
 							"txid":      float64(1),
 							"reference": "tx1",
 							"timestamp": now.Format(time.RFC3339),
-							"hash":      "abcd",
 							"metadata": map[string]interface{}{
 								"foo": "bar",
 							},
@@ -184,7 +184,6 @@ func TestMultiSearch(t *testing.T) {
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("POST", "/", bytes.NewBuffer(data))
 			r.ServeHTTP(rec, req)
-
 			assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
 
 			response := api.BaseResponse[map[string]interface{}]{}
@@ -219,7 +218,7 @@ func TestSingleDocTypeSearch(t *testing.T) {
 				},
 				core.Account{
 					Address: "user:002",
-					Metadata: map[string]json.RawMessage{
+					Metadata: core.Metadata{
 						"foo": json.RawMessage(`"bar"`),
 					},
 				},
@@ -262,7 +261,7 @@ func TestSingleDocTypeSearch(t *testing.T) {
 			results: []interface{}{
 				core.Account{
 					Address: "user:002",
-					Metadata: map[string]json.RawMessage{
+					Metadata: core.Metadata{
 						"foo": json.RawMessage(`"bar"`),
 					},
 				},
@@ -409,9 +408,7 @@ func TestSingleDocTypeSearch(t *testing.T) {
 					When:   now,
 					Data:   sourceData,
 				})
-				if err != nil {
-					assert.NoError(t, err)
-				}
+				assert.NoError(t, err)
 				esResponse.Hits.Hits = append(esResponse.Hits.Hits, es.ResponseHit{
 					Source: data,
 				})
@@ -434,7 +431,6 @@ func TestSingleDocTypeSearch(t *testing.T) {
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("POST", "/", bytes.NewBuffer(data))
 			r.ServeHTTP(rec, req)
-
 			assert.Equal(t, http.StatusOK, rec.Result().StatusCode)
 
 			response := api.BaseResponse[map[string]interface{}]{}
