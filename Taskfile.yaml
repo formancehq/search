@@ -7,7 +7,7 @@ vars:
   FAILFAST: "-failfast"
   TIMEOUT: "10m"
   RUN: ".*"
-  VERBOSE: "true"
+  VERBOSE: "false"
 
 tasks:
   default:
