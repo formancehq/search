@@ -13,7 +13,7 @@ type cursorTokenInfo struct {
 	Sort        []searchengine.Sort `json:"sort"`
 	SearchAfter []interface{}       `json:"searchAfter"`
 	Ledgers     []string            `json:"ledgers"`
-	Size        uint64              `json:"size"`
+	PageSize    uint64              `json:"pageSize"`
 	TermPolicy  string              `json:"termPolicy"`
 	Reverse     bool                `json:"reverse"`
 	Terms       []string            `json:"terms"`

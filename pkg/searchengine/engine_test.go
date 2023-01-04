@@ -84,7 +84,7 @@ func testSort(t *testing.T) {
 
 	q := NewSingleDocTypeSearch("TRANSACTION")
 	q.WithLedgers("quickstart")
-	q.WithSize(20)
+	q.WithPageSize(20)
 	q.WithSort("txid", esquery.OrderAsc)
 
 	_, err := openSearchClient.Indices.GetMapping()
@@ -113,7 +113,7 @@ func testPagination(t *testing.T) {
 	for i := 0; ; i++ {
 		q := NewSingleDocTypeSearch("TRANSACTION")
 		q.WithLedgers("quickstart")
-		q.WithSize(5)
+		q.WithPageSize(5)
 		q.WithSort("timestamp", esquery.OrderDesc)
 		q.WithSearchAfter(searchAfter)
 
@@ -391,7 +391,7 @@ func testKeepOnlyLastDocument(t *testing.T) {
 	}
 
 	q := NewMultiDocTypeSearch()
-	q.WithSize(5)
+	q.WithPageSize(5)
 
 	response, err := q.Do(context.Background(), engine)
 	assert.NoError(t, err)

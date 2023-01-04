@@ -20,9 +20,9 @@ import (
 
 type queryChecker func(*testing.T, map[string]interface{})
 
-func hasSize(size int) queryChecker {
+func hasPageSize(pageSize int) queryChecker {
 	return func(t *testing.T, m map[string]interface{}) {
-		assert.EqualValues(t, size, m["size"])
+		assert.EqualValues(t, pageSize, m["size"])
 	}
 }
 
@@ -246,13 +246,13 @@ func TestSingleDocTypeSearch(t *testing.T) {
 			},
 		},
 		{
-			name: "size",
+			name: "pageSize",
 			kind: "ACCOUNT",
 			query: map[string]interface{}{
-				"size": 1,
+				"pageSize": 1,
 			},
 			queryChecker: []queryChecker{
-				hasSize(2),
+				hasPageSize(2),
 				hasSort(searchengine.Sort{
 					Key:   "address",
 					Order: esquery.OrderDesc,
@@ -337,11 +337,11 @@ func TestSingleDocTypeSearch(t *testing.T) {
 					SearchAfter: []interface{}{
 						"user:002",
 					},
-					Size: 5,
+					PageSize: 5,
 				}),
 			},
 			queryChecker: []queryChecker{
-				hasSize(6),
+				hasPageSize(6),
 				hasSort(searchengine.Sort{
 					Key:   "address",
 					Order: esquery.OrderDesc,
@@ -368,8 +368,8 @@ func TestSingleDocTypeSearch(t *testing.T) {
 						SearchAfter: []interface{}{
 							"user:001",
 						},
-						Size:    5,
-						Reverse: true,
+						PageSize: 5,
+						Reverse:  true,
 					}),
 					Total: &api.Total{
 						Value: 1,

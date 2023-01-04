@@ -21,7 +21,7 @@ paths:
       tags:
         - Search
       operationId: search
-      description: Search with Query
+      description: ElasticSearch query engine
       requestBody:
         required: true
         content:
@@ -29,15 +29,26 @@ paths:
             schema:
               $ref: '#/components/schemas/Query'
       responses:
-        200:
+        "200":
           description: Success
           content:
             application/json:
               schema:
-                "$ref": '#/components/schemas/Response'
+                $ref: '#/components/schemas/Response'
+        default:
+          description: Error
+          content: {}
 
 components:
   schemas:
+    ServerInfo:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+
     Query:
       type: object
       properties:
@@ -51,7 +62,7 @@ components:
           items:
             type: string
             example: "users:002"
-        size:
+        pageSize:
           type: integer
           format: int64
           minimum: 0
@@ -111,11 +122,3 @@ components:
               items:
                 allOf:
                 - type: object
-
-    ServerInfo:
-      type: object
-      required:
-        - version
-      properties:
-        version:
-          type: string

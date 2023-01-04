@@ -13,7 +13,7 @@ import (
 type baseQuery struct {
 	Ledgers    []string `json:"ledgers"`
 	Terms      []string `json:"terms"`
-	Size       uint64   `json:"size"`
+	PageSize   uint64   `json:"pageSize"`
 	TermPolicy string   `json:"policy"`
 }
 
@@ -25,8 +25,8 @@ func (q *baseQuery) WithTerms(terms ...string) {
 	q.Terms = terms
 }
 
-func (q *baseQuery) WithSize(size uint64) {
-	q.Size = size
+func (q *baseQuery) WithPageSize(pageSize uint64) {
+	q.PageSize = pageSize
 }
 
 func (q *baseQuery) WithPolicy(policy string) {
@@ -103,7 +103,7 @@ func (q *SingleDocTypeSearch) Do(ctx context.Context, e Engine) (*SingleDocTypeS
 	for _, sort := range q.Sort {
 		req.Sort("indexed."+sort.Key, sort.Order)
 	}
-	req.Size(q.Size)
+	req.Size(q.PageSize)
 
 	res, err := e.doRequest(ctx, req.Map())
 	if err != nil {
@@ -139,7 +139,7 @@ func (q *SingleDocTypeSearch) WithTarget(target string) {
 func NewSingleDocTypeSearch(target string) *SingleDocTypeSearch {
 	return &SingleDocTypeSearch{
 		baseQuery: baseQuery{
-			Size: 5,
+			PageSize: 5,
 		},
 		Target: target,
 	}
@@ -186,7 +186,7 @@ func (q *MultiDocTypeSearch) Do(ctx context.Context, e Engine) (MultiDocTypeSear
 		"field": "kind",
 		"inner_hits": map[string]interface{}{
 			"name": "docs",
-			"size": q.Size,
+			"size": q.PageSize,
 			"sort": []map[string]interface{}{
 				{
 					"when": "desc",
@@ -213,6 +213,6 @@ func (q *MultiDocTypeSearch) Do(ctx context.Context, e Engine) (MultiDocTypeSear
 
 func NewMultiDocTypeSearch() *MultiDocTypeSearch {
 	return &MultiDocTypeSearch{
-		baseQuery{Size: 5},
+		baseQuery{PageSize: 5},
 	}
 }
