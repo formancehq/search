@@ -10,13 +10,18 @@ import (
 	"strings"
 
 	"github.com/aquasecurity/esquery"
-	"github.com/formancehq/go-libs/sharedlogging"
+	"github.com/formancehq/go-libs/api"
+	"github.com/formancehq/go-libs/logging"
 	"github.com/formancehq/search/pkg/searchengine"
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 )
 
-func resolveQuery(r *http.Request) (*cursorTokenInfo, interface{}, error) {
+type BaseQuery interface {
+	WithPageSize(pageSize uint64)
+}
+
+func resolveQuery(r *http.Request) (*cursorTokenInfo, BaseQuery, error) {
 	var (
 		target      string
 		cursorToken string
@@ -40,10 +45,6 @@ func resolveQuery(r *http.Request) (*cursorTokenInfo, interface{}, error) {
 	} else {
 		target = r.Form.Get("target")
 		cursorToken = r.Form.Get("cursor")
-	}
-
-	type BaseQuery interface {
-		WithSize(size uint64)
 	}
 
 	var searchQuery BaseQuery
@@ -93,18 +94,18 @@ func resolveQuery(r *http.Request) (*cursorTokenInfo, interface{}, error) {
 		q.WithTarget(info.Target)
 		q.WithSearchAfter(info.SearchAfter)
 		q.WithLedgers(info.Ledgers...)
-		q.WithSize(info.Size)
+		q.WithPageSize(info.PageSize)
 		q.WithPolicy(info.TermPolicy)
 		q.WithTerms(info.Terms...)
 		searchQuery = q
 	}
 
-	if size := r.Form.Get("size"); size != "" {
-		size, err := strconv.ParseInt(size, 10, 64)
+	if pageSize := r.Form.Get("pageSize"); pageSize != "" {
+		pageSize, err := strconv.ParseInt(pageSize, 10, 64)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "parsing size")
+			return nil, nil, errors.Wrap(err, "parsing pageSize")
 		}
-		searchQuery.WithSize(uint64(size))
+		searchQuery.WithPageSize(uint64(pageSize))
 	}
 
 	switch qq := searchQuery.(type) {
@@ -144,10 +145,9 @@ func Handler(engine searchengine.Engine) http.HandlerFunc {
 			return
 		}
 
-		var response Response
 		switch qq := searchQuery.(type) {
 		case *searchengine.SingleDocTypeSearch:
-			qq.Size++
+			qq.PageSize++
 			searchResponse, err := qq.Do(r.Context(), engine)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
@@ -179,9 +179,9 @@ func Handler(engine searchengine.Engine) http.HandlerFunc {
 			if cursor != nil && cursor.Reverse {
 				reverse = true
 			}
-			if len(items) > int(qq.Size)-1 {
+			if len(items) > int(qq.PageSize)-1 {
 				hasMore = true
-				items = items[0 : qq.Size-1]
+				items = items[0 : qq.PageSize-1]
 			}
 			if reverse {
 				for i := 0; i < len(items)/2; i++ {
@@ -196,19 +196,19 @@ func Handler(engine searchengine.Engine) http.HandlerFunc {
 				if reverse {
 					sort = reverseOrder(sort...)
 				}
-				nextNti := &cursorTokenInfo{
+				nextTokenInfo := cursorTokenInfo{
 					Target:     qq.Target,
 					Sort:       sort,
 					Ledgers:    qq.Ledgers,
-					Size:       qq.Size - 1,
+					PageSize:   qq.PageSize - 1,
 					TermPolicy: qq.TermPolicy,
 					Terms:      qq.Terms,
 				}
 				for _, s := range qq.Sort {
 					value := gjson.Get(string(item), s.Key)
-					nextNti.SearchAfter = append(nextNti.SearchAfter, value.Value())
+					nextTokenInfo.SearchAfter = append(nextTokenInfo.SearchAfter, value.Value())
 				}
-				next = EncodePaginationToken(*nextNti)
+				next = EncodeCursorToken(nextTokenInfo)
 			}
 			previous := ""
 			if cursor != nil && (!reverse || (reverse && hasMore)) {
@@ -218,11 +218,11 @@ func Handler(engine searchengine.Engine) http.HandlerFunc {
 				} else {
 					sort = reverseOrder(qq.Sort...)
 				}
-				previousNti := &cursorTokenInfo{
+				prevTokenInfo := cursorTokenInfo{
 					Target:     qq.Target,
 					Sort:       sort,
 					Ledgers:    qq.Ledgers,
-					Size:       qq.Size - 1,
+					PageSize:   qq.PageSize - 1,
 					TermPolicy: qq.TermPolicy,
 					Reverse:    true,
 					Terms:      qq.Terms,
@@ -230,23 +230,27 @@ func Handler(engine searchengine.Engine) http.HandlerFunc {
 				firstItem := items[0]
 				for _, s := range qq.Sort {
 					value := gjson.Get(string(firstItem), s.Key)
-					previousNti.SearchAfter = append(previousNti.SearchAfter, value.Value())
+					prevTokenInfo.SearchAfter = append(prevTokenInfo.SearchAfter, value.Value())
 				}
-				previous = EncodePaginationToken(*previousNti)
+				previous = EncodeCursorToken(prevTokenInfo)
 			}
 
-			response = Response{
-				Cursor: &Page{ // TODO: Use shared go-libs (See with reslene about format, camel case vs snake case)
-					PageSize: int(math.Min(float64(qq.Size-1), float64(len(items)))),
-					HasMore:  next != "",
-					Total: Total{
+			resp := api.BaseResponse[json.RawMessage]{
+				Cursor: &api.Cursor[json.RawMessage]{
+					PageSize: int(math.Min(float64(qq.PageSize-1), float64(len(items)))),
+					Total: &api.Total{
 						Value: uint64(searchResponse.Total.Value),
 						Rel:   searchResponse.Total.Relation,
 					},
-					Data:     items,
-					Next:     next,
+					HasMore:  next != "",
 					Previous: previous,
+					Next:     next,
+					Data:     items,
 				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(resp); err != nil {
+				logging.GetLogger(r.Context()).Errorf("error encoding json response: %s", err)
 			}
 
 		case *searchengine.MultiDocTypeSearch:
@@ -255,15 +259,13 @@ func Handler(engine searchengine.Engine) http.HandlerFunc {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 				return
 			}
-			response = Response{
-				Data: searchResponse,
+			resp := api.BaseResponse[searchengine.MultiDocTypeSearchResponse]{
+				Data: &searchResponse,
 			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(response)
-		if err != nil {
-			sharedlogging.GetLogger(r.Context()).Errorf("Error encoding json response: %s", err)
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(resp); err != nil {
+				logging.GetLogger(r.Context()).Errorf("error encoding json response: %s", err)
+			}
 		}
 	}
 }

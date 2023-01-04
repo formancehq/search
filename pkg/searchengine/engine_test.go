@@ -14,45 +14,46 @@ import (
 
 func testEngine(t *testing.T) {
 	ledger := "quickstart"
-	insertTransaction(t, ledger, "transaction0", time.Now(), core.Transaction{
-		Metadata: core.Metadata{
-			"foo": json.RawMessage(`{"foo": "bar"}`),
-		},
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central:bank",
-				Asset:       "USD",
-				Amount:      100,
+	insertTransaction(t, ledger, "transaction0", time.Now(),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Metadata: core.Metadata{
+					"foo": json.RawMessage(`{"foo": "bar"}`),
+				},
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central:bank",
+						Asset:       "USD",
+						Amount:      core.NewMonetaryInt(100),
+					},
+				},
 			},
-		},
-	})
+		})
 
 	q := NewSingleDocTypeSearch("TRANSACTION")
 	q.WithLedgers(ledger)
 	q.WithTerms("central:bank")
 	response, err := q.Do(context.Background(), engine)
-	if !assert.NoError(t, err) {
-		return
-	}
-	if !assert.Len(t, response.Items, 1) {
-		return
-	}
+	assert.NoError(t, err)
+	assert.Len(t, response.Items, 1)
 }
 
 func testMatchingAllFields(t *testing.T) {
-
 	now := time.Now().Round(time.Second).UTC()
-	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute), core.Transaction{
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central_bank",
-				Amount:      100,
-				Asset:       "USD",
+	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central_bank",
+						Amount:      core.NewMonetaryInt(100),
+						Asset:       "USD",
+					},
+				},
 			},
-		},
-	})
+		})
 	insertTransaction(t, "quickstart", "transaction1", now, core.Transaction{})
 	insertTransaction(t, "quickstart", "transaction2", now.Add(time.Minute), core.Transaction{})
 
@@ -61,50 +62,37 @@ func testMatchingAllFields(t *testing.T) {
 	q.WithTerms("USD")
 
 	response, err := q.Do(context.Background(), engine)
-	if !assert.NoError(t, err) {
-		return
-	}
-	if !assert.Len(t, response["TRANSACTION"], 1) {
-		return
-	}
+	assert.NoError(t, err)
+	assert.Len(t, response["TRANSACTION"], 1)
 
 	q = NewMultiDocTypeSearch()
 	q.WithLedgers("quickstart")
 	q.WithTerms("US")
 	response, err = q.Do(context.Background(), engine)
-	if !assert.NoError(t, err) {
-		return
-	}
-	if !assert.Len(t, response["TRANSACTION"], 1) {
-		return
-	}
+	assert.NoError(t, err)
+	assert.Len(t, response["TRANSACTION"], 1)
 }
 
 func testSort(t *testing.T) {
 	now := time.Now().Round(time.Second).UTC()
 	const count = 20
 	for i := 0; i < count; i++ {
-		insertTransaction(t, "quickstart", fmt.Sprintf("transaction%d", i), now.Add(time.Duration(i)*time.Minute), core.Transaction{})
+		insertTransaction(t, "quickstart",
+			fmt.Sprintf("transaction%d", i),
+			now.Add(time.Duration(i)*time.Minute), core.Transaction{})
 	}
 
 	q := NewSingleDocTypeSearch("TRANSACTION")
 	q.WithLedgers("quickstart")
-	q.WithSize(20)
+	q.WithPageSize(20)
 	q.WithSort("txid", esquery.OrderAsc)
 
 	_, err := openSearchClient.Indices.GetMapping()
-	if !assert.NoError(t, err) {
-		return
-	}
+	assert.NoError(t, err)
 
 	response, err := q.Do(context.Background(), engine)
-	if !assert.NoError(t, err) {
-		return
-	}
-
-	if !assert.Len(t, response.Items, count) {
-		return
-	}
+	assert.NoError(t, err)
+	assert.Len(t, response.Items, count)
 }
 
 func testPagination(t *testing.T) {
@@ -112,56 +100,43 @@ func testPagination(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		at := now.Add(time.Duration(i) * time.Minute)
-		insertTransaction(t, "quickstart", fmt.Sprintf("transaction%d", i), at, core.Transaction{
-			Timestamp: at.Format(time.RFC3339),
-		})
+		insertTransaction(t, "quickstart",
+			fmt.Sprintf("transaction%d", i), at,
+			core.Transaction{
+				TransactionData: core.TransactionData{
+					Timestamp: at,
+				},
+			})
 	}
 
-	var (
-		searchAfter []interface{}
-	)
+	searchAfter := []interface{}{}
 	for i := 0; ; i++ {
 		q := NewSingleDocTypeSearch("TRANSACTION")
 		q.WithLedgers("quickstart")
-		q.WithSize(5)
+		q.WithPageSize(5)
 		q.WithSort("timestamp", esquery.OrderDesc)
 		q.WithSearchAfter(searchAfter)
 
 		_, err := openSearchClient.Indices.GetMapping()
-		if !assert.NoError(t, err) {
-			return
-		}
+		assert.NoError(t, err)
 
 		response, err := q.Do(context.Background(), engine)
-		if !assert.NoError(t, err) {
-			return
-		}
+		assert.NoError(t, err)
 
 		tx := core.Transaction{}
-		if !assert.NoError(t, json.Unmarshal(response.Items[0], &tx)) {
-			return
-		}
+		assert.NoError(t, json.Unmarshal(response.Items[0], &tx))
 
 		if i < 3 {
-			if !assert.Len(t, response.Items, 5) {
-				return
-			}
-			if !assert.Equal(t, tx.Timestamp, now.Add(19*time.Minute).Add(-time.Duration(i)*5*time.Minute).UTC().Format(time.RFC3339)) {
-				return
-			}
+			assert.Len(t, response.Items, 5)
+			assert.Equal(t, tx.Timestamp, now.Add(19*time.Minute).Add(-time.Duration(i)*5*time.Minute).UTC())
 		} else {
-			if !assert.Len(t, response.Items, 5) {
-				return
-			}
-			if !assert.Equal(t, tx.Timestamp, now.Add(19*time.Minute).Add(-time.Duration(i)*5*time.Minute).UTC().Format(time.RFC3339)) {
-				return
-			}
+			assert.Len(t, response.Items, 5)
+			assert.Equal(t, tx.Timestamp, now.Add(19*time.Minute).Add(-time.Duration(i)*5*time.Minute).UTC())
 			break
 		}
+
 		lastTx := core.Transaction{}
-		if !assert.NoError(t, json.Unmarshal(response.Items[4], &lastTx)) {
-			return
-		}
+		assert.NoError(t, json.Unmarshal(response.Items[4], &lastTx))
 
 		searchAfter = []interface{}{lastTx.Timestamp}
 	}
@@ -169,36 +144,41 @@ func testPagination(t *testing.T) {
 }
 
 func testMatchingSpecificField(t *testing.T) {
-
 	now := time.Now().Round(time.Second).UTC()
-	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute), core.Transaction{
-		Timestamp: now.Add(-time.Minute).Format(time.RFC3339),
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central_bank",
-				Amount:      100,
-				Asset:       "USD",
+	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Timestamp: now.Add(-time.Minute),
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central_bank",
+						Amount:      core.NewMonetaryInt(100),
+						Asset:       "USD",
+					},
+				},
 			},
-		},
-	})
-	insertTransaction(t, "quickstart", "transaction1", now.Add(time.Minute), core.Transaction{
-		Timestamp: now.Add(time.Minute).Format(time.RFC3339),
-		Postings: core.Postings{
-			{
-				Source:      "central_bank",
-				Destination: "user:001",
-				Amount:      1000,
-				Asset:       "USD",
+		})
+	insertTransaction(t, "quickstart", "transaction1", now.Add(time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Timestamp: now.Add(time.Minute),
+				Postings: core.Postings{
+					{
+						Source:      "central_bank",
+						Destination: "user:001",
+						Amount:      core.NewMonetaryInt(1000),
+						Asset:       "USD",
+					},
+					{
+						Source:      "world",
+						Destination: "central_bank",
+						Amount:      core.NewMonetaryInt(10000),
+						Asset:       "USD",
+					},
+				},
 			},
-			{
-				Source:      "world",
-				Destination: "central_bank",
-				Amount:      10000,
-				Asset:       "USD",
-			},
-		},
-	})
+		})
 
 	type testCase struct {
 		name          string
@@ -252,49 +232,53 @@ func testMatchingSpecificField(t *testing.T) {
 			q.WithTerms(tc.term)
 
 			response, err := q.Do(context.Background(), engine)
-			if !assert.NoError(t, err) {
-				return
-			}
-			if !assert.Len(t, response["TRANSACTION"], tc.expectedCount) {
-				return
-			}
+			assert.NoError(t, err)
+			assert.Len(t, response["TRANSACTION"], tc.expectedCount)
 		})
 	}
 }
 
 func testUsingOrPolicy(t *testing.T) {
-
 	now := time.Now().Round(time.Second).UTC()
-	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute), core.Transaction{
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central_bank1",
-				Amount:      100,
-				Asset:       "USD",
+	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central_bank1",
+						Amount:      core.NewMonetaryInt(100),
+						Asset:       "USD",
+					},
+				},
 			},
-		},
-	})
-	insertTransaction(t, "quickstart", "transaction1", now.Add(time.Minute), core.Transaction{
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central_bank2",
-				Amount:      1000,
-				Asset:       "USD",
+		})
+	insertTransaction(t, "quickstart", "transaction1", now.Add(time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central_bank2",
+						Amount:      core.NewMonetaryInt(1000),
+						Asset:       "USD",
+					},
+				},
 			},
-		},
-	})
-	insertTransaction(t, "quickstart", "transaction2", now.Add(time.Minute), core.Transaction{
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central_bank3",
-				Amount:      1000,
-				Asset:       "USD",
+		})
+	insertTransaction(t, "quickstart", "transaction2", now.Add(time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central_bank3",
+						Amount:      core.NewMonetaryInt(1000),
+						Asset:       "USD",
+					},
+				},
 			},
-		},
-	})
+		})
 
 	q := NewSingleDocTypeSearch("TRANSACTION")
 	q.WithLedgers("quickstart")
@@ -302,37 +286,38 @@ func testUsingOrPolicy(t *testing.T) {
 	q.WithPolicy(TermPolicyOR)
 
 	response, err := q.Do(context.Background(), engine)
-	if !assert.NoError(t, err) {
-		return
-	}
-	if !assert.Len(t, response.Items, 2) {
-		return
-	}
+	assert.NoError(t, err)
+	assert.Len(t, response.Items, 2)
 }
 
 func testAssetDecimals(t *testing.T) {
-
 	now := time.Now().Round(time.Second).UTC()
-	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute), core.Transaction{
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central_bank",
-				Amount:      10045,
-				Asset:       "USD/2",
+	insertTransaction(t, "quickstart", "transaction0", now.Add(-time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central_bank",
+						Amount:      core.NewMonetaryInt(10045),
+						Asset:       "USD/2",
+					},
+				},
 			},
-		},
-	})
-	insertTransaction(t, "quickstart", "transaction1", now.Add(-time.Minute), core.Transaction{
-		Postings: core.Postings{
-			{
-				Source:      "world",
-				Destination: "central_bank",
-				Amount:      1000,
-				Asset:       "USD",
+		})
+	insertTransaction(t, "quickstart", "transaction1", now.Add(-time.Minute),
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Postings: core.Postings{
+					{
+						Source:      "world",
+						Destination: "central_bank",
+						Amount:      core.NewMonetaryInt(1000),
+						Asset:       "USD",
+					},
+				},
 			},
-		},
-	})
+		})
 
 	type testCase struct {
 		name          string
@@ -356,12 +341,8 @@ func testAssetDecimals(t *testing.T) {
 			q.WithLedgers("quickstart")
 
 			response, err := q.Do(context.Background(), engine)
-			if !assert.NoError(t, err) {
-				return
-			}
-			if !assert.Len(t, response["TRANSACTION"], tc.expectedCount) {
-				return
-			}
+			assert.NoError(t, err)
+			assert.Len(t, response["TRANSACTION"], tc.expectedCount)
 		})
 	}
 
@@ -370,35 +351,30 @@ func testAssetDecimals(t *testing.T) {
 func testSearchInTransactionMetadata(t *testing.T) {
 	now := time.Now().Round(time.Second).UTC()
 	metadata := core.Metadata{
-		"Hello": json.RawMessage("\"guys!\""),
-		"John":  json.RawMessage("\"Snow!\""),
+		"Hello": "guys!",
+		"John":  "Snow!",
 	}
-	insertTransaction(t, "quickstart", "transaction0", now, core.Transaction{
-		Metadata: metadata,
-	})
-	insertTransaction(t, "quickstart", "transaction1", now, core.Transaction{})
+	insertTransaction(t, "quickstart", "transaction0", now,
+		core.Transaction{
+			TransactionData: core.TransactionData{
+				Metadata: metadata,
+			},
+		})
+	insertTransaction(t, "quickstart", "transaction1", now,
+		core.Transaction{})
 
 	q := NewMultiDocTypeSearch()
 	q.WithTerms("John")
 	response, err := q.Do(context.Background(), engine)
-	if !assert.NoError(t, err) {
-		return
-	}
-	if !assert.Len(t, response["TRANSACTION"], 1) {
-		return
-	}
+	assert.NoError(t, err)
+	assert.Len(t, response["TRANSACTION"], 1)
 
 	tx := core.Transaction{}
-	if !assert.NoError(t, json.Unmarshal(response["TRANSACTION"][0], &tx)) {
-		return
-	}
-	if !assert.Equal(t, metadata, tx.Metadata) {
-		return
-	}
+	assert.NoError(t, json.Unmarshal(response["TRANSACTION"][0], &tx))
+	assert.Equal(t, metadata, tx.Metadata)
 }
 
 func testKeepOnlyLastDocument(t *testing.T) {
-
 	now := time.Now().Round(time.Hour)
 	for i := 0; i < 10; i++ {
 		insertAccount(t, "quickstart", fmt.Sprintf("account%d", i), now, core.Account{
@@ -407,22 +383,18 @@ func testKeepOnlyLastDocument(t *testing.T) {
 	}
 	for i := 0; i < 20; i++ {
 		insertTransaction(t, "quickstart", fmt.Sprintf("transaction%d", i), now.Add(2*time.Minute), core.Transaction{
-			ID:        int64(i),
-			Timestamp: now.Add(time.Hour).Format(time.RFC3339),
+			ID: uint64(i),
+			TransactionData: core.TransactionData{
+				Timestamp: now.Add(time.Hour),
+			},
 		})
 	}
 
 	q := NewMultiDocTypeSearch()
-	q.WithSize(5)
+	q.WithPageSize(5)
 
 	response, err := q.Do(context.Background(), engine)
-	if !assert.NoError(t, err) {
-		return
-	}
-	if !assert.Len(t, response["TRANSACTION"], 5) {
-		return
-	}
-	if !assert.Len(t, response["ACCOUNT"], 5) {
-		return
-	}
+	assert.NoError(t, err)
+	assert.Len(t, response["TRANSACTION"], 5)
+	assert.Len(t, response["ACCOUNT"], 5)
 }
