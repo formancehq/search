@@ -3,6 +3,7 @@ package searchengine
 import (
 	"context"
 	"encoding/json"
+	"log"
 
 	"github.com/aquasecurity/esquery"
 	search "github.com/formancehq/search/pkg"
@@ -215,4 +216,27 @@ func NewMultiDocTypeSearch() *MultiDocTypeSearch {
 	return &MultiDocTypeSearch{
 		baseQuery{PageSize: 5},
 	}
+}
+
+type RawQuery struct {
+	Body json.RawMessage `json:"body"`
+}
+
+type RawQueryResponse *es.ResponseHits
+
+func (q RawQuery) WithPageSize(pageSize uint64) {
+}
+
+func (q RawQuery) Do(ctx context.Context, e Engine) (RawQueryResponse, error) {
+	var query map[string]interface{}
+	err := json.Unmarshal(q.Body, &query)
+	if err != nil {
+		return nil, errors.Wrap(err, "query.invalid_body")
+	}
+	res, err := e.doRequest(ctx, query)
+	log.Println(res)
+	if err != nil {
+		return nil, err
+	}
+	return RawQueryResponse(&res.Hits), nil
 }
