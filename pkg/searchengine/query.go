@@ -3,7 +3,6 @@ package searchengine
 import (
 	"context"
 	"encoding/json"
-	"log"
 
 	"github.com/aquasecurity/esquery"
 	search "github.com/formancehq/search/pkg"
@@ -234,7 +233,6 @@ func (q RawQuery) Do(ctx context.Context, e Engine) (RawQueryResponse, error) {
 		return nil, errors.Wrap(err, "query.invalid_body")
 	}
 	res, err := e.doRequest(ctx, query)
-	log.Println(res)
 	if err != nil {
 		return nil, err
 	}
