@@ -221,7 +221,7 @@ type RawQuery struct {
 	Body json.RawMessage `json:"body"`
 }
 
-type RawQueryResponse *es.ResponseHits
+type RawQueryResponse *es.Response
 
 func (q RawQuery) WithPageSize(pageSize uint64) {
 }
@@ -236,5 +236,5 @@ func (q RawQuery) Do(ctx context.Context, e Engine) (RawQueryResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	return RawQueryResponse(&res.Hits), nil
+	return RawQueryResponse(res), nil
 }
