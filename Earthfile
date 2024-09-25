@@ -47,7 +47,7 @@ deploy:
     RUN kubectl patch Versions.formance.com default -p "{\"spec\":{\"search\": \"${tag}\"}}" --type=merge
 
 deploy-staging:
-    BUILD --pass-args core+deployer-module --MODULE=search
+    BUILD --pass-args core+deploy-staging
 
 lint:
     FROM core+builder-image
