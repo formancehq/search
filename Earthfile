@@ -9,7 +9,7 @@ FROM core+base-image
 sources:
     WORKDIR /src
     COPY go.* .
-    COPY --dir pkg cmd .
+    COPY --dir pkg cmd benthos .
     COPY main.go .
     SAVE ARTIFACT /src
 
