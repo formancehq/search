@@ -37,7 +37,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
-	github.com/go-chi/chi/v5 v5.2.0 // indirect
+	github.com/go-chi/chi/v5 v5.2.2 // indirect
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
