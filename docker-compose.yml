@@ -6,14 +6,14 @@ services:
     - "16686:16686/tcp"
 
   opensearch:
-    image: opensearchproject/opensearch:2.11.0
+    image: opensearchproject/opensearch:2.19.3
     environment:
       discovery.type: single-node
     ports:
     - 9200:9200/tcp
 
   benthos:
-    image: jeffail/benthos:4.11
+    image: jeffail/benthos:4.27
     ports:
     - "4195:4195/tcp"
     volumes:
@@ -51,7 +51,7 @@ services:
 
   search:
     command: go run main.go serve
-    image: golang:1.19-alpine
+    image: golang:1.25-alpine
     ports:
     - 8080:8080/tcp
     depends_on:
